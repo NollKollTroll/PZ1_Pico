@@ -1,16 +1,12 @@
 #ifndef PWMAUDIO_H
 #define PWMAUDIO_H
 
-//uint16_t soundSamples[2048];
 int audioPinSlice;
-uint16_t cur_sample = 0;
 
 void pwmIrqHandler() 
 {
     pwm_clear_irq(audioPinSlice);
-    //pwm_set_gpio_level(AUDIO_PIN, sid_calc() / 64);
-    pwm_set_gpio_level(AUDIO_PIN, cur_sample);    
-    cur_sample = (cur_sample + 1) & 1023;
+    pwm_set_gpio_level(AUDIO_PIN, sid_calc() / 64);
 }
 
 void pwmInit()

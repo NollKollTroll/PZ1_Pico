@@ -31,12 +31,10 @@ void setup()
     pinMode(BANK_LE,   OUTPUT);
     pinMode(CTRL_LE,   OUTPUT);
     
-    pinMode(LED_PIN,   OUTPUT);
+    pinMode(DEBUG_PIN, OUTPUT);
     
-    pinMode(SD_CS_N, OUTPUT);  
-    pinMode(LCD_CS_N, OUTPUT);  
+    pinMode(SD_CS_N,      OUTPUT);  
     digitalWrite(SD_CS_N, HIGH);
-    digitalWrite(LCD_CS_N, HIGH); 
     
     digitalWrite(CLK,       HIGH);
     digitalWrite(A_LO_EN_N, HIGH);
@@ -50,17 +48,17 @@ void setup()
 
     Serial.begin(115200);
     while(!Serial)
-    {
-        //waiting for the serial channel
+    {   //waiting for the serial channel
     }
     
     reset6502();
     irqTimerInit();    
-    frameCounter = 0;    
-    frameTimer = time_us_32() + FRAME_TIME_US;
     sid_reset();
     pwmInit();
     fsInit();    
+    
+    frameCounter = 0;    
+    frameTimer = time_us_32() + FRAME_TIME_US;    
 }
 
 void loop() 
@@ -72,15 +70,147 @@ void loop()
     while (time_us_32() < frameTimer)
     {
     }
+    
     //debug: visualize the timing of 1 frame
-    gpio_put(LED_PIN, 1);
+    gpio_put(DEBUG_PIN, 1);
+    
     // run 65C02 for one frame
     for (int frameCycles = 0; frameCycles < (CPU_FREQUENCY / FRAME_RATE); frameCycles++)
-    {   //CLK is LOW
+    {   
+        //CLK is LOW here
         cpuAddr = getAddr();  
         gpio_put(CLK, HIGH);
         
-        if (gpio_get(RW) == LOW) 
+        if (gpio_get(RW) == HIGH) 
+        {   //read operation          
+            if ((cpuAddr & 0xFF00) == 0xFE00) 
+            {   //I/O-device read                
+                switch (cpuAddr) 
+                {   //take action depending on device
+                    // ******** SID registers ********                
+                    case PORT_SID_00:
+                    case PORT_SID_01:
+                    case PORT_SID_02:
+                    case PORT_SID_03:
+                    case PORT_SID_04:
+                    case PORT_SID_05:
+                    case PORT_SID_06:
+                    case PORT_SID_07:
+                    case PORT_SID_08:
+                    case PORT_SID_09:
+                    case PORT_SID_0A:
+                    case PORT_SID_0B:
+                    case PORT_SID_0C:
+                    case PORT_SID_0D:
+                    case PORT_SID_0E:
+                    case PORT_SID_0F:
+                    case PORT_SID_10:
+                    case PORT_SID_11:
+                    case PORT_SID_12:
+                    case PORT_SID_13:
+                    case PORT_SID_14:
+                    case PORT_SID_15:
+                    case PORT_SID_16:
+                    case PORT_SID_17:
+                    case PORT_SID_18:
+                    case PORT_SID_19:
+                    case PORT_SID_1A:
+                    case PORT_SID_1B:
+                    case PORT_SID_1C:
+                    {
+                        cpuData = sid_read(cpuAddr & 0x1F);
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    // ******** Memory bank registers ********
+                        // Same as default
+                    // ******** Serial port registers ********
+                    case PORT_SERIAL_0_IN: 
+                    {   //serial input
+                        if (Serial.available()) 
+                        {
+                            cpuData = Serial.read();
+                        }
+                        else 
+                        {
+                            cpuData = 0;
+                        }
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    case PORT_SERIAL_0_FLAGS:
+                    {   //serial flags
+                        if (Serial.available()) 
+                        {
+                            cpuData = 64;
+                        }
+                        else 
+                        {
+                            cpuData = 0;
+                        }
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    // ******** Frame counter registers********
+                    case PORT_FRAME_COUNTER_LO: 
+                    {
+                        cpuData = frameCounter & 255;
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    case PORT_FRAME_COUNTER_HI: 
+                    {
+                        cpuData = frameCounter >> 8;
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    // ******** File system registers ********
+                    case PORT_FILE_DATA: 
+                    {
+                        cpuData = fsDataRead();
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    case PORT_FILE_STATUS: 
+                    {
+                        cpuData = (uint8_t)fileStatus;
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    // ******** Irq timer registers ********
+                        // Same as default
+                    // ******** All other I/O ********
+                    default: 
+                    {
+                        cpuData = portMem6502[cpuAddr & 0xFF];
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                }
+            }
+            else if ((cpuAddr & 0xFF00) == 0xFF00) 
+            {   //top page ROM read, regardless of BANK_3                
+                cpuData = toppage_bin[cpuAddr & 0xFF];
+                setDataAndClk(cpuData);
+            }
+            else 
+            {
+                uint8_t activeBank = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
+                if (activeBank <= 127)
+                {
+                    setBank(activeBank);
+                    setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
+                    setCtrlFast(ctrlValue | CTRL_RAM_R_N);
+                    gpio_put(CLK, LOW);
+                }
+                else
+                {
+                    cpuData = ehbasic_bin[cpuAddr & 0x3FFF];
+                    setDataAndClk(cpuData);
+                }
+            }    
+        }
+        else
         {   //write operation
             if ((cpuAddr & 0xFF00) == 0xFE00)
             {   //I/O-device write
@@ -192,149 +322,26 @@ void loop()
                     }
                 }
             }
-            else if ((cpuAddr & 0xFF00) >= 0xC000)
-            {   //do nothing, trying to write to ROM                
-                gpio_put(CLK, LOW);
-            }
             else 
-            {   //RAM write 0-48KiB   
-                //setBank(cpuAddr >> 14);
-                setBank(portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)]);
-                setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
-                setCtrlFast(ctrlValue | CTRL_RAM_W_N);      
-                gpio_put(CLK, LOW);
-            }
-        }
-        else
-        {   //read operation          
-            if ((cpuAddr & 0xFF00) == 0xFE00) 
-            {   //I/O-device read                
-                switch (cpuAddr) 
-                {   //take action depending on device
-                    // ******** SID registers ********                
-                    case PORT_SID_00:
-                    case PORT_SID_01:
-                    case PORT_SID_02:
-                    case PORT_SID_03:
-                    case PORT_SID_04:
-                    case PORT_SID_05:
-                    case PORT_SID_06:
-                    case PORT_SID_07:
-                    case PORT_SID_08:
-                    case PORT_SID_09:
-                    case PORT_SID_0A:
-                    case PORT_SID_0B:
-                    case PORT_SID_0C:
-                    case PORT_SID_0D:
-                    case PORT_SID_0E:
-                    case PORT_SID_0F:
-                    case PORT_SID_10:
-                    case PORT_SID_11:
-                    case PORT_SID_12:
-                    case PORT_SID_13:
-                    case PORT_SID_14:
-                    case PORT_SID_15:
-                    case PORT_SID_16:
-                    case PORT_SID_17:
-                    case PORT_SID_18:
-                    case PORT_SID_19:
-                    case PORT_SID_1A:
-                    case PORT_SID_1B:
-                    case PORT_SID_1C:
-                    {
-                        cpuData = sid_read(cpuAddr & 0x1F);
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    // ******** Memory bank registers ********
-                        // Same as default
-                    // ******** Serial port registers ********
-                    case PORT_SERIAL_0_IN: 
-                    {   //serial input
-                        if (Serial.available()) 
-                        {
-                            cpuData = Serial.read();
-                        }
-                        else 
-                        {
-                            cpuData = 0;
-                        }
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    case PORT_SERIAL_0_FLAGS:
-                    {   //serial flags
-                        if (Serial.available()) 
-                        {
-                            cpuData = 64;
-                        }
-                        else 
-                        {
-                            cpuData = 0;
-                        }
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    // ******** Frame counter registers********
-                    case PORT_FRAME_COUNTER_LO: 
-                    {
-                        cpuData = frameCounter & 255;
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    case PORT_FRAME_COUNTER_HI: 
-                    {
-                        cpuData = frameCounter >> 8;
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    // ******** File system registers ********
-                    case PORT_FILE_DATA: 
-                    {
-                        cpuData = fsDataRead();
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    case PORT_FILE_STATUS: 
-                    {
-                        cpuData = (uint8_t)fileStatus;
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    // ******** Irq timer registers ********
-                        // Same as default
-                    // ******** All other I/O ********
-                    default: 
-                    {
-                        cpuData = portMem6502[cpuAddr & 0xFF];
-                        setDataAndClk(cpuData);
-                        break;
-                    }
+            {   
+                uint8_t activeBank = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
+                if (activeBank <= 127)
+                {
+                    setBank(activeBank);
+                    setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
+                    setCtrlFast(ctrlValue | CTRL_RAM_W_N);      
+                    gpio_put(CLK, LOW);
+                }
+                else
+                {   //Writing to ROM? Nope!
+                    gpio_put(CLK, LOW);
                 }
             }
-            else if ((cpuAddr & 0xFF00) == 0xFF00) 
-            {   //top page ROM read                
-                cpuData = toppage_bin[cpuAddr & 0xFF];
-                setDataAndClk(cpuData);
-            }
-            else if ((cpuAddr & 0xFF00) >= 0xC000) 
-            {   //ROM read 48-63.5KiB                
-                cpuData = ehbasic_bin[cpuAddr - 0xC000];
-                setDataAndClk(cpuData);
-            }
-            else 
-            {   //RAM read 0-48KiB                
-                //setBank(cpuAddr >> 14);
-                setBank(portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)]);
-                setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
-                setCtrlFast(ctrlValue | CTRL_RAM_R_N);
-                gpio_put(CLK, LOW);
-            }    
         }
     }
     
     frameCounter++;
     frameTimer += FRAME_TIME_US;
     //debug: visualize the timing of 1 frame
-    gpio_put(LED_PIN, 0);
+    gpio_put(DEBUG_PIN, 0);
 }

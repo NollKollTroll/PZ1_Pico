@@ -17,11 +17,11 @@ section code, "reset code", BANK_SIZE - 256, BANK_SIZE - 6
             //init bank registers
             lda     #0
             sta     PORT_BANK_0
-            ina
+            lda     #1
             sta     PORT_BANK_1
-            ina
+            lda     #2
             sta     PORT_BANK_2
-            ina
+            lda     #128
             sta     PORT_BANK_3
             //start ehBasic
             jmp     $C000

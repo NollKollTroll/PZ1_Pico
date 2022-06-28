@@ -85,6 +85,7 @@ uint8_t portMem6502[256];
 #define SPI_TX         19
 #define LCD_CS_N       20
 #define LED_PIN        25
+#define DEBUG_PIN      27
 #define AUDIO_PIN      28
 // ctrl-port
 #define CTRL_IRQ_N     1
