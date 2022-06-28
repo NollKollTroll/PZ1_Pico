@@ -1,43 +1,16 @@
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
+#include <SDFS.h>
 
 #include "lowLevel.h"
-
 #include "irqTimer.h"
+#include "sid.h"
+#include "pwmAudio.h" 
+#include "fileSystem.h"
 
 #include "6502-src/ehbasic.h"
 #include "6502-src/toppage.h"
-
-#include "sid.h"
-
-//uint16_t soundSamples[2048];
-int audio_pin_slice;
-//int cur_sample = 0;
-
-void pwm_irh() 
-{
-    pwm_clear_irq(audio_pin_slice);
-    pwm_set_gpio_level(AUDIO_PIN, sid_calc() / 64);
-    //pwm_set_gpio_level(AUDIO_PIN, soundSamples[cur_sample]);    
-    //cur_sample = (cur_sample + 1) & 2047;
-}
-
-void reset6502() 
-{
-    ctrlValue = 255 & ~CTRL_RST_N;
-    setCtrl(ctrlValue);
-    busy_wait_us_32(1);
-    for (int i = 0; i < 16; i++)
-    {
-        gpio_put(CLK, HIGH);
-        busy_wait_us_32(1);
-        gpio_put(CLK, LOW);
-        busy_wait_us_32(1);
-    }
-    ctrlValue = ctrlValue | CTRL_RST_N;
-    setCtrl(ctrlValue);
-}
 
 void setup() 
 {
@@ -60,6 +33,11 @@ void setup()
     
     pinMode(LED_PIN,   OUTPUT);
     
+    pinMode(SD_CS_N, OUTPUT);  
+    pinMode(LCD_CS_N, OUTPUT);  
+    digitalWrite(SD_CS_N, HIGH);
+    digitalWrite(LCD_CS_N, HIGH); 
+    
     digitalWrite(CLK,       HIGH);
     digitalWrite(A_LO_EN_N, HIGH);
     digitalWrite(A_HI_EN_N, HIGH);
@@ -81,27 +59,8 @@ void setup()
     frameCounter = 0;    
     frameTimer = time_us_32() + FRAME_TIME_US;
     sid_reset();
-    /*
-    for (int i = 0; i < 2048; i++)
-    {
-        soundSamples[i] = (i & 255) << 2;
-    }
-    */
-    gpio_set_function(AUDIO_PIN, GPIO_FUNC_PWM);    
-    audio_pin_slice = pwm_gpio_to_slice_num(AUDIO_PIN);
-    // Setup PWM interrupt to fire when PWM cycle is complete
-    pwm_clear_irq(audio_pin_slice);
-    pwm_set_irq_enabled(audio_pin_slice, true);
-    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irh);
-    irq_set_enabled(PWM_IRQ_WRAP, true);
-    // Setup PWM for audio output
-    pwm_config config = pwm_get_default_config();
-    // 133MHz / 44100 / 256 -> 11.78
-    // 133MHz / 44100 / 1024 -> 2.9452
-    pwm_config_set_clkdiv(&config, 2.9452f);
-    pwm_config_set_wrap(&config, 1023);
-    pwm_init(audio_pin_slice, &config, true);
-    pwm_set_gpio_level(AUDIO_PIN, 128);    
+    pwmInit();
+    fsInit();    
 }
 
 void loop() 
@@ -125,9 +84,9 @@ void loop()
         {   //write operation
             if ((cpuAddr & 0xFF00) == 0xFE00)
             {   //I/O-device write
-                //write to ports6502-memory
+                //write to portMem6502-memory
                 cpuData = getData();
-                ports6502[cpuAddr & 0xFF] = cpuData;                
+                portMem6502[cpuAddr & 0xFF] = cpuData;                
                 switch (cpuAddr)
                 {   //take action depending on device
                     //******** SID registers ********
@@ -165,6 +124,8 @@ void loop()
                         gpio_put(CLK, LOW);
                         break;
                     }
+                    // ******** Memory bank registers ********
+                        // Same as default
                     // ******** Serial port registers ********
                     case PORT_SERIAL_0_OUT:
                     {
@@ -173,35 +134,54 @@ void loop()
                         gpio_put(CLK, LOW);
                         break;
                     }       
-                    // ******** Irq counter registers ********
+                    // ******** Frame counter registers ********
+                        // Same as default
+                    // ******** File system registers ********
+                    case PORT_FILE_CMD: {
+                        fsCmdWrite(cpuData);
+                        gpio_put(CLK, LOW);
+                        break;
+                    }
+                    case PORT_FILE_DATA: {
+                        fsDataWrite(cpuData);
+                        gpio_put(CLK, LOW);
+                        break;
+                    }
+                    // ******** Irq timer registers ********
                     case PORT_IRQ_TIMER_LO: //target lo
                     {
                         irqTimerWriteLo(cpuData);
+                        gpio_put(CLK, LOW);
                         break;
                     }
                     case PORT_IRQ_TIMER_HI: //target hi
                     {
                         irqTimerWriteHi(cpuData);
+                        gpio_put(CLK, LOW);
                         break;
                     }
                     case PORT_IRQ_TIMER_RESET:
                     {  
                         irqTimerReset();
+                        gpio_put(CLK, LOW);
                         break;
                     }
                     case PORT_IRQ_TIMER_TRIG: 
                     {
                         irqTimerReset();
+                        gpio_put(CLK, LOW);
                         break;
                     }
                     case PORT_IRQ_TIMER_PAUSE: 
                     {
                         irqTimerPause();
+                        gpio_put(CLK, LOW);
                         break;
                     }
                     case PORT_IRQ_TIMER_CONT:
                     {
                         irqTimerPause();
+                        gpio_put(CLK, LOW);
                         break;
                     }
                     // ******** Default ********
@@ -217,8 +197,9 @@ void loop()
                 gpio_put(CLK, LOW);
             }
             else 
-            {   //RAM write 0-48KiB                
-                setBank(cpuAddr >> 14);
+            {   //RAM write 0-48KiB   
+                //setBank(cpuAddr >> 14);
+                setBank(portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)]);
                 setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
                 setCtrlFast(ctrlValue | CTRL_RAM_W_N);      
                 gpio_put(CLK, LOW);
@@ -265,6 +246,9 @@ void loop()
                         setDataAndClk(cpuData);
                         break;
                     }
+                    // ******** Memory bank registers ********
+                        // Same as default
+                    // ******** Serial port registers ********
                     case PORT_SERIAL_0_IN: 
                     {   //serial input
                         if (Serial.available()) 
@@ -291,7 +275,7 @@ void loop()
                         setDataAndClk(cpuData);
                         break;
                     }
-                    // ******** Frame counter ********
+                    // ******** Frame counter registers********
                     case PORT_FRAME_COUNTER_LO: 
                     {
                         cpuData = frameCounter & 255;
@@ -304,10 +288,25 @@ void loop()
                         setDataAndClk(cpuData);
                         break;
                     }
+                    // ******** File system registers ********
+                    case PORT_FILE_DATA: 
+                    {
+                        cpuData = fsDataRead();
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    case PORT_FILE_STATUS: 
+                    {
+                        cpuData = (uint8_t)fileStatus;
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    // ******** Irq timer registers ********
+                        // Same as default
                     // ******** All other I/O ********
                     default: 
                     {
-                        cpuData = ports6502[cpuAddr & 0xFF];
+                        cpuData = portMem6502[cpuAddr & 0xFF];
                         setDataAndClk(cpuData);
                         break;
                     }
@@ -325,23 +324,14 @@ void loop()
             }
             else 
             {   //RAM read 0-48KiB                
-                setBank(cpuAddr >> 14);
+                //setBank(cpuAddr >> 14);
+                setBank(portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)]);
                 setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
                 setCtrlFast(ctrlValue | CTRL_RAM_R_N);
                 gpio_put(CLK, LOW);
             }    
         }
     }
-    
-    //debug: visualize the timing of 1 frame
-    //gpio_put(AUDIO_PIN, 1);
-    /*
-    int16_t soundPort;
-    for (int sampleCount = 0; sampleCount < (SAMPLE_RATE / FRAME_RATE); sampleCount++)
-    {
-        soundPort = sid_calc();        
-    }
-    */
     
     frameCounter++;
     frameTimer += FRAME_TIME_US;

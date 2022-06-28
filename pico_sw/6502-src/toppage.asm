@@ -14,6 +14,15 @@ section code, "reset code", BANK_SIZE - 256, BANK_SIZE - 6
             // init stack
             ldx     #$FF
             txs
+            //init bank registers
+            lda     #0
+            sta     PORT_BANK_0
+            ina
+            sta     PORT_BANK_1
+            ina
+            sta     PORT_BANK_2
+            ina
+            sta     PORT_BANK_3
             //start ehBasic
             jmp     $C000
         }

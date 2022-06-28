@@ -1,7 +1,11 @@
-#define CPU_FREQUENCY 1000000
-#define FRAME_RATE    50
-#define FRAME_TIME_US (1000000 / FRAME_RATE)
-#define SAMPLE_RATE   44100
+#ifndef LOWLEVEL_H
+#define LOWLEVEL_H
+
+// system characteristics
+#define CPU_FREQUENCY  1000000 //Hz
+#define FRAME_RATE     50 //Hz
+#define FRAME_TIME_US  (1000000 / FRAME_RATE)
+#define SAMPLE_RATE    44100 //Hz
 
 // SID registers
 #define PORT_SID_00           0xFE00
@@ -45,14 +49,18 @@
 // frame counter registers
 #define PORT_FRAME_COUNTER_LO 0xFE40
 #define PORT_FRAME_COUNTER_HI 0xFE41
-// timer port registers
+// file system registers
+#define PORT_FILE_CMD         0xFE60
+#define PORT_FILE_DATA        0xFE61
+#define PORT_FILE_STATUS      0xFE62
+// IRQ timer port registers
 #define PORT_IRQ_TIMER_LO     0xFE80  //writing the lo-value fills the intermediate register
 #define PORT_IRQ_TIMER_HI     0xFE81  //writing the hi-value sets the timer from the completed intermediate register
 #define PORT_IRQ_TIMER_RESET  0xFE82  //timer = 0 so it can count a full cycle again
 #define PORT_IRQ_TIMER_TRIG   0xFE83  //timer = max timer-value, so it triggers an irq
 #define PORT_IRQ_TIMER_PAUSE  0xFE84  //pause the timer indefinitely
 #define PORT_IRQ_TIMER_CONT   0xFE85  //continue the timer after a pause, also acks a triggered timer
-uint8_t ports6502[256];
+uint8_t portMem6502[256];
 
 // pin definitions
 #define PD0            0
@@ -71,6 +79,11 @@ uint8_t ports6502[256];
 #define D_EN_N         13
 #define BANK_LE        14
 #define CTRL_LE        15
+#define SPI_RX         16
+#define SD_CS_N        17
+#define SPI_CLK        18
+#define SPI_TX         19
+#define LCD_CS_N       20
 #define LED_PIN        25
 #define AUDIO_PIN      28
 // ctrl-port
@@ -158,3 +171,21 @@ static inline void setDataAndClk(uint8_t value)
     gpio_put(CLK, LOW);    
     gpio_put(D_EN_N, HIGH);
 }
+
+void reset6502() 
+{
+    ctrlValue = 255 & ~CTRL_RST_N;
+    setCtrl(ctrlValue);
+    busy_wait_us_32(1);
+    for (int i = 0; i < 16; i++)
+    {
+        gpio_put(CLK, HIGH);
+        busy_wait_us_32(1);
+        gpio_put(CLK, LOW);
+        busy_wait_us_32(1);
+    }
+    ctrlValue = ctrlValue | CTRL_RST_N;
+    setCtrl(ctrlValue);
+}
+
+#endif //LOWLEVEL_H

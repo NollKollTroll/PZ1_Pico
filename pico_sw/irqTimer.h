@@ -1,3 +1,6 @@
+#ifndef IRQTIMER_H
+#define IRQTIMER_H
+
 int32_t irqTimerTicks;
 uint16_t irqTimerTarget;
 
@@ -33,13 +36,13 @@ static inline void irqTimerTick(void)
 
 static inline void irqTimerWriteLo(uint8_t cpuData)
 {   // Do nothing, data already written to io-memory
-    // ports6502[PORT_IRQ_TIMER_LO & 0xFF] = cpuData;
+    // portMem6502[PORT_IRQ_TIMER_LO & 0xFF] = cpuData;
 }
 
 static inline void irqTimerWriteHi(uint8_t cpuData)
 {   // Trigger the use of a new 16-bit timer value by writing the high byte and clear IRQ
-    // ports6502[PORT_IRQ_TIMER_HI] = cpuData;
-    irqTimerTarget = (cpuData << 8) + ports6502[PORT_IRQ_TIMER_LO & 0xFF];
+    // portMem6502[PORT_IRQ_TIMER_HI] = cpuData;
+    irqTimerTarget = (cpuData << 8) + portMem6502[PORT_IRQ_TIMER_LO & 0xFF];
     irqTimerState = RUNNING;                    
     ctrlValue = ctrlValue | CTRL_IRQ_N;
     setCtrl(ctrlValue);
@@ -72,3 +75,5 @@ static inline void irqTimerCont(void)
     ctrlValue = ctrlValue | CTRL_IRQ_N;
     setCtrl(ctrlValue);
 }
+
+#endif //IRQTIMER_H
