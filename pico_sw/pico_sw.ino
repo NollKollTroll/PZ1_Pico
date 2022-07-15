@@ -50,13 +50,13 @@ void setup()
     while(!Serial)
     {   //waiting for the serial channel
     }
-    
+
     reset6502();
     irqTimerInit();    
     sid_reset();
     pwmInit();
     fsInit();    
-    
+
     frameCounter = 0;    
     frameTimer = time_us_32() + FRAME_TIME_US;    
 }
@@ -66,7 +66,7 @@ void loop()
     uint16_t cpuAddr;
     uint8_t cpuData;
 
-    //time with next frame start
+    //sync with next frame start
     while (time_us_32() < frameTimer)
     {
     }
@@ -126,7 +126,7 @@ void loop()
                         // Same as default
                     // ******** Serial port registers ********
                     case PORT_SERIAL_0_IN: 
-                    {   //serial input
+                    {
                         if (Serial.available()) 
                         {
                             cpuData = Serial.read();
@@ -139,7 +139,7 @@ void loop()
                         break;
                     }
                     case PORT_SERIAL_0_FLAGS:
-                    {   //serial flags
+                    {
                         if (Serial.available()) 
                         {
                             cpuData = 64;
@@ -194,17 +194,17 @@ void loop()
                 setDataAndClk(cpuData);
             }
             else 
-            {
+            {   //banked memory 0x0000-0xFDFF
                 uint8_t activeBank = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
                 if (activeBank <= 127)
-                {
+                {   //banks 0-127 are RAM
                     setBank(activeBank);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
                     setCtrlFast(ctrlValue | CTRL_RAM_R_N);
                     gpio_put(CLK, LOW);
                 }
                 else
-                {
+                {   //banks 128-255 are ROM
                     cpuData = ehbasic_bin[cpuAddr & 0x3FFF];
                     setDataAndClk(cpuData);
                 }
@@ -214,7 +214,6 @@ void loop()
         {   //write operation
             if ((cpuAddr & 0xFF00) == 0xFE00)
             {   //I/O-device write
-                //write to portMem6502-memory
                 cpuData = getData();
                 portMem6502[cpuAddr & 0xFF] = cpuData;                
                 switch (cpuAddr)
@@ -259,7 +258,6 @@ void loop()
                     // ******** Serial port registers ********
                     case PORT_SERIAL_0_OUT:
                     {
-                        //serial output                        
                         Serial.write(cpuData);
                         gpio_put(CLK, LOW);
                         break;
@@ -267,25 +265,27 @@ void loop()
                     // ******** Frame counter registers ********
                         // Same as default
                     // ******** File system registers ********
-                    case PORT_FILE_CMD: {
+                    case PORT_FILE_CMD:
+                    {
                         fsCmdWrite(cpuData);
                         gpio_put(CLK, LOW);
                         break;
                     }
-                    case PORT_FILE_DATA: {
+                    case PORT_FILE_DATA:
+                    {
                         fsDataWrite(cpuData);
                         gpio_put(CLK, LOW);
                         break;
                     }
                     // ******** Irq timer registers ********
-                    case PORT_IRQ_TIMER_LO: //target lo
-                    {
+                    case PORT_IRQ_TIMER_LO:
+                    {   //target lo
                         irqTimerWriteLo(cpuData);
                         gpio_put(CLK, LOW);
                         break;
                     }
-                    case PORT_IRQ_TIMER_HI: //target hi
-                    {
+                    case PORT_IRQ_TIMER_HI:
+                    {   //target hi
                         irqTimerWriteHi(cpuData);
                         gpio_put(CLK, LOW);
                         break;
@@ -316,24 +316,30 @@ void loop()
                     }
                     // ******** Default ********
                     default: 
-                    {
+                    {   //nothing more to do, already written cpuData to portMem6502
                         gpio_put(CLK, LOW);
                         break;
                     }
                 }
             }
+            else if ((cpuAddr & 0xFF00) == 0xFF00) 
+            {   //top page ROM write, regardless of BANK_3                
+                //Writing to ROM? Nope.
+                gpio_put(CLK, LOW);
+            }
             else 
-            {   
-                uint8_t activeBank = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
+            {   //banked memory 0x0000-0xFDFF
+                uint8_t activeBank = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];                
                 if (activeBank <= 127)
-                {
+                {   //banks 0-127 are RAM
                     setBank(activeBank);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
                     setCtrlFast(ctrlValue | CTRL_RAM_W_N);      
                     gpio_put(CLK, LOW);
                 }
                 else
-                {   //Writing to ROM? Nope!
+                {   //banks 128-255 are ROM
+                    //Writing to ROM? Nope.
                     gpio_put(CLK, LOW);
                 }
             }
@@ -342,6 +348,7 @@ void loop()
     
     frameCounter++;
     frameTimer += FRAME_TIME_US;
+    
     //debug: visualize the timing of 1 frame
     gpio_put(DEBUG_PIN, 0);
 }

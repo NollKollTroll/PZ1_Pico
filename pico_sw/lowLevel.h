@@ -130,7 +130,7 @@ static inline void setCtrl(uint8_t value)
 }
 
 static inline void setCtrlFast(uint8_t value) 
-{
+{   //WARNING: only use if the pins are already outputs, to save some time
     //gpio_set_dir_out_masked(255);
     gpio_put_masked(255, value);
     gpio_put(CTRL_LE, HIGH);
