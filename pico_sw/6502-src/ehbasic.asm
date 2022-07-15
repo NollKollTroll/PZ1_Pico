@@ -39,9 +39,13 @@
 // 2.22p5.7ak   Adams additions and changes, jasm-fixed.
 
 include "portdefs.asm"
-//include "macros.asm"
-//include "zpos.asm"
-//include "oscalls.asm"
+include "zpos.asm"
+include "oscalls.asm"
+
+section code, "dummy filler for ROM", 0, 512
+{
+    define byte[512] dummy_filler = {0, ...}
+}
 
 section bss, "zeropage basic", 0, 224
 {
@@ -290,7 +294,7 @@ section bss, "zeropage basic", 0, 224
     reserve byte [65] Ibuffs         // input buffer
 }
 
-section code, "basic code", $C000
+section code, "basic code", $0200, 16384
 {
 BASIC_begin:
     // offsets from a base of x or y
@@ -303,39 +307,13 @@ BASIC_begin:
     const LAB_SKFE          = LAB_STAK+$FE    // flushed stack address
     const LAB_SKFF          = LAB_STAK+$FF    // flushed stack address
 
-    const Ram_base          = $0200           // start of user RAM (set as needed, should be page aligned)
-    const Ram_top           = $C000           // end of user RAM+1 (set as needed, should be page aligned)
+    const Ram_base          = BASIC_end       // start of user RAM (set as needed, should be page aligned)
+    const Ram_top           = $FE00           // end of user RAM+1 (set as needed, should be page aligned)
 
     static_assert((Ram_base & $ff) == 0, "Ram_base not page aligned")
     static_assert((Ram_top & $ff) == 0, "Ram_top not page aligned")
 
     const Stack_floor       = 16              // bytes left free on stack for background interrupts
-
-        /*
-        //First start from here
-        //modify serial access if(thread != 0)        
-        {            
-            lda     #OS.THREAD_SELF_GET
-            jsr     osCall
-            lda     osCallData[0]
-            beq     @continue
-            
-            lda     #<PORT_SERIAL_1_OUT
-            sta     default_serial_out.lo
-            lda     #>PORT_SERIAL_1_OUT
-            sta     default_serial_out.hi
-            
-            lda     #<PORT_SERIAL_1_FLAGS
-            sta     default_serial_flags.lo
-            lda     #>PORT_SERIAL_1_FLAGS
-            sta     default_serial_flags.hi
-            
-            lda     #<PORT_SERIAL_1_IN
-            sta     default_serial_in.lo
-            lda     #>PORT_SERIAL_1_IN
-            sta     default_serial_in.hi
-        }
-        */
 
     // BASIC cold start entry point
     LAB_COLD:
@@ -391,11 +369,11 @@ BASIC_begin:
           ldx   #>Ram_base        // set start addr high byte
           sty   Smeml             // save start of mem low byte
           stx   Smemh             // save start of mem high byte
-//Why?! AK
-           tya                     // clear a
-           sta   (Smeml),y         // clear first byte
-           inc   Smeml             // increment start of mem low byte
-//WHY end
+
+          tya                     // clear a
+          sta   (Smeml),y         // clear first byte
+          inc   Smeml             // increment start of mem low byte
+
           jsr   LAB_1463          // do "NEW" and "CLEAR"
           lda   Ememl             // get end of mem low byte
           sec                     // set carry for subtract
@@ -8558,8 +8536,6 @@ BASIC_begin:
 
     subroutine LAB_TLOAD1
     {
-        jmp   LAB_167A
-        /*
         //if no params do command 
         beq   .CMD_OK
         //else do syntax error
@@ -8572,13 +8548,10 @@ BASIC_begin:
         jsr   osCall
         //scan memory and return
         jmp   LAB_GBYT
-        */
     }
     
     subroutine LAB_TLOAD4
     {
-        jmp   LAB_167A
-        /*
         //if no params do command 
         beq   .CMD_OK
         //else do syntax error
@@ -8591,13 +8564,10 @@ BASIC_begin:
         jsr   osCall
         //scan memory and return
         jmp   LAB_GBYT
-        */
     }
 
     subroutine LAB_TBLKR
     {
-        jmp   LAB_167A
-        /*
         //save integer part of FAC1 in temporary integer
         jsr   LAB_F2FX
         //get low byte, high byte should be 0
@@ -8611,13 +8581,10 @@ BASIC_begin:
         ldy   osCallData[1]
         //convert y to byte in FAC1 and return
         jmp   LAB_1FD0
-        */
     }
 
     subroutine LAB_TSLOTR
     {
-        jmp   LAB_167A
-        /*
         //save integer part of FAC1 in temporary integer
         jsr   LAB_F2FX
         //get low byte, high byte should be 0
@@ -8631,13 +8598,10 @@ BASIC_begin:
         ldy   osCallData[1]
         //convert y to byte in FAC1 and return
         jmp   LAB_1FD0
-        */
     }
 
     subroutine LAB_TSLOTW
     {
-        jmp   LAB_167A
-        /*
         //get two parameters
         jsr   LAB_GADB
         //get low byte, high byte should be 0
@@ -8650,13 +8614,10 @@ BASIC_begin:
         lda   #OS.THREAD_SET_SLOT_TIME
         jsr   osCall
         rts
-        */
     }
 
     subroutine LAB_TKILL
     {
-        jmp   LAB_167A
-        /*
         bne   .end              // if something following
         ldx   #ERR_NR_SN        // else syntax error
         jmp   LAB_XERR          // print error, then warm start 
@@ -8672,13 +8633,10 @@ BASIC_begin:
         lda   #OS.THREAD_KILL
         jsr   osCall
         rts
-        */
     }
 
     subroutine LAB_TSTATER
     {
-        jmp   LAB_167A
-        /*
         //save integer part of FAC1 in temporary integer
         jsr   LAB_F2FX
         //get low byte, high byte should be 0
@@ -8692,13 +8650,10 @@ BASIC_begin:
         ldy   osCallData[1]
         //convert y to byte in FAC1 and return
         jmp   LAB_1FD0
-        */
     }
 
     subroutine LAB_TSELFR
     {
-        jmp   LAB_167A
-        /*
         //osCall
         lda   #OS.THREAD_SELF_GET
         jsr   osCall
@@ -8706,7 +8661,6 @@ BASIC_begin:
         ldy   osCallData[0]
         //convert y to byte in FAC1 and return
         jmp   LAB_1FD0
-        */
     }
 
     define byte ccflag = 0          // BASIC CTRL-C flag, 00 = enabled, 01 = dis
@@ -8716,8 +8670,6 @@ BASIC_begin:
     //load subroutine for EhBASIC
     subroutine V_LOAD
     {
-        jmp   LAB_167A
-        /*
         jsr     LAB_EVEX
         lda     Dtypef
         bne     .string_arg_ok
@@ -8757,14 +8709,11 @@ BASIC_begin:
         pla
         pla
         jmp     LAB_127D
-        */
     }
 
     //save subroutine for EhBASIC
     subroutine V_SAVE
     {
-        jmp   LAB_167A
-        /*
         jsr     LAB_EVEX
         lda     Dtypef
         bne     .string_arg_ok
@@ -8813,22 +8762,16 @@ BASIC_begin:
         lda     #>ByteOutputSerial
         sta     ByteOutputVector.hi
         rts
-        */
     }
 
     subroutine ByteOutputFile
     {
-        jmp   LAB_167A
-        /*
         sta     PORT_FILE_DATA
         rts
-        */
     }
     
     subroutine ByteInputFile
     {
-        jmp   LAB_167A
-        /*
         //try to get byte from opened file
         lda     PORT_FILE_DATA
         //check status
@@ -8850,7 +8793,6 @@ BASIC_begin:
         pla
         pla
         jmp     LAB_1274
-        */
     }
 
     subroutine V_OUTP
@@ -8887,8 +8829,6 @@ BASIC_begin:
     
     subroutine LAB_DIR
     {
-        jmp   LAB_167A
-        /*
         //if (argc == 0)
         beq   .CMD_OK
         //else do syntax error
@@ -8912,9 +8852,26 @@ BASIC_begin:
             jmp     @loop
         }
         jmp     LAB_GBYT
-        */
     }
-
+    
+    //page align BASIC_end...
     align 256
-BASIC_end:
+BASIC_end:    
+    //..and fill out ROM to 16KiB
+    align 16384
 }
+
+/*
+Added BASIC commands:
+DIR to list all files on the SD-card
+SAVE "filename" to save to SD
+LOAD "filename" to load from SD
+TSELFR thread self read, returns thread number of self
+TSTATER(thread number) thread state read, returns thread state
+TKILL(thread number) thread kill, kills the designated thread
+TSLOTR(thread number) thread slot time read, returns how many time ticks the thread has allocated
+TSLOTW(thread number, time) thread slot time write, set a new time tick value (0-255) for the thread
+TBLKR(thread number) thread block read, returns what blocks belong to a thread
+TLOAD1 load a new thread from serial (S9-format), with 16KiB RAM allocated
+TLOAD4 load a new thread from serial (S9-format), with 64KiB RAM allocated
+*/

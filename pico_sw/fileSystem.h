@@ -26,8 +26,7 @@ enum class FILE_STATUS
     NOK
 };
 
-File fileData;
-Dir dir;
+File fileData, root;
 String dirData;
 uint8_t dirDataPtr = 0;
 
@@ -43,13 +42,13 @@ void fsInit()
     SPI.setSCK(SPI_CLK);
     SPI.setCS(SD_CS_N);
     digitalWrite(SD_CS_N, LOW);    
-    if (!SDFS.begin()) 
+    if (!SD.begin(SD_CS_N)) 
     {
-        Serial.println("\n*** FS open NOK!");
+        SerDebug.println("\n*** FS open NOK!");
     }
     else
     {
-        Serial.println("\n*** FS open OK");
+        SerDebug.println("\n*** FS open OK");
     }
     fileStatus = FILE_STATUS::NOK;
     fileState = FILE_STATE::CLOSED;
@@ -78,34 +77,37 @@ static inline void fsCmdWrite(uint8_t cpuData)
     }
     else if ((FILE_CMD)cpuData == FILE_CMD::DIR) 
     {        
-        if (SDFS.exists("/")) 
+        root = SD.open("/");
+        if (root) 
         {
-            dir = SDFS.openDir("/");
             fileStatus = FILE_STATUS::OK;
             fileState = FILE_STATE::DIR;
         }
         else 
         {
+            root.close();
             fileStatus = FILE_STATUS::NOK;
             fileState = FILE_STATE::CLOSED;
-        }
+        }       
     }
     else if ((FILE_CMD)cpuData == FILE_CMD::DIR_NEXT) 
     {
-        if (dir.next())
+        fileData = root.openNextFile();
+        if (fileData) 
         {
-            if (dir.isDirectory())
+            if (!fileData.isDirectory()) 
             {
-                dirData = String('[') + dir.fileName() + String(']');
+                dirData = fileData.name() + String(" @") + String((long unsigned int)fileData.size());
             }
-            else
+            else 
             {
-                dirData = dir.fileName() + String(" @") + String((long unsigned int)dir.fileSize());
+                dirData = String('[') + fileData.name() + String(']');
             }
             dirDataPtr = 0;
         }
-        else
+        else 
         {
+            root.close();
             fileStatus = FILE_STATUS::NOK;
             fileState = FILE_STATE::CLOSED;
         }
@@ -158,7 +160,7 @@ static inline void fsDataWrite(uint8_t cpuData)
             fileName[fileNameIndex] = 0;
             if (fileState == FILE_STATE::OPEN_W) 
             {
-                fileData = SDFS.open(fileName, "r+");
+                fileData = SD.open(fileName, FILE_WRITE);
                 if (fileData) 
                 {
                     fileStatus = FILE_STATUS::OK;
@@ -173,7 +175,7 @@ static inline void fsDataWrite(uint8_t cpuData)
             }                            
             else if (fileState == FILE_STATE::OPEN_R) 
             {
-                fileData = SDFS.open(fileName, FILE_READ);
+                fileData = SD.open(fileName, FILE_READ);
                 if (fileData) 
                 {
                     fileStatus = FILE_STATUS::OK;

@@ -31,7 +31,10 @@ assemble ()
 
 echo \#### Starting assembly
 cd 6502-src
-assemble toppage
+#assemble toppage
 assemble ehbasic
+assemble scheduler
+assemble thread_text 512
+assemble thread_sid 512
 echo
 echo \#### Assembly done

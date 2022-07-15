@@ -6,7 +6,8 @@ int audioPinSlice;
 void pwmIrqHandler() 
 {
     pwm_clear_irq(audioPinSlice);
-    pwm_set_gpio_level(AUDIO_PIN, sid_calc() / 64);
+    //div by 64 to get 10 bits, add 512 to change from signed to unsigned
+    pwm_set_gpio_level(AUDIO_PIN, (sid_calc() / 64) + 512);
 }
 
 void pwmInit()
@@ -20,9 +21,11 @@ void pwmInit()
     irq_set_enabled(PWM_IRQ_WRAP, true);
     //Setup PWM for audio output
     pwm_config config = pwm_get_default_config();
+    //10-bit output, 1024 levels -> 1023
     pwm_config_set_clkdiv(&config, (static_cast<float>(clock_get_hz(clk_sys)) / SAMPLE_RATE / 1023));
     pwm_config_set_wrap(&config, 1023);
     pwm_init(audioPinSlice, &config, true);
+    //half of 1024 -> 512
     pwm_set_gpio_level(AUDIO_PIN, 512);
 }
 

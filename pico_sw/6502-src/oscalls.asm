@@ -1,0 +1,12 @@
+const osCall = $ff00
+
+enum OS
+{
+    THREAD_LOAD,
+    THREAD_GET_SLOT_TIME,
+    THREAD_SET_SLOT_TIME,
+    THREAD_KILL,
+    THREAD_GET_BLOCKS,
+    THREAD_STATE_GET,
+    THREAD_SELF_GET
+}
