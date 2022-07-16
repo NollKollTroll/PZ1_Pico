@@ -1,12 +1,11 @@
-//#define SER_DEBUG
+/*
+Compiled with -O3 optimization,
+timings are tested to work at 250MHz and 133MHz
+*/
 
-#ifdef SER_DEBUG
+#define SER_DEBUG
 SerialPIO Ser6502(21, 22, 32);
 #define SerDebug Serial    
-#else
-#define Ser6502 Serial
-#define SerDebug Serial    
-#endif
 
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
@@ -55,24 +54,16 @@ void setup()
     ctrlValue = 255 & ~CTRL_RST_N;
     setCtrl(ctrlValue);
 
-    Ser6502.begin(115200);    
-    while(!Ser6502)
-    {   //waiting for the serial channel
-    }
-    
-#ifdef SER_DEBUG
     SerDebug.begin(115200);
-    while(!SerDebug)
-    {   //waiting for the serial channel
+    Ser6502.begin(115200);
+    while(!Serial)
+    {
     }
-#endif    
 
     reset6502();
     irqTimerInit();    
-    sid_reset();
-    pwmInit();
     fsInit();    
-
+    
     frameCounter = 0;    
     frameTimer = time_us_32() + FRAME_TIME_US;    
 }
@@ -103,8 +94,12 @@ void loop()
                 {   //blocks 0-127 are RAM
                     setBank(activeBlock);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
-                    setCtrlFast(ctrlValue);
+                    wait1();
+                    //wait1();
+                    //wait1();
+                    //wait1();
                     gpio_put(CLK, LOW);
+                    setCtrlFast(ctrlValue);
                 }
                 else if (activeBlock == 254)
                 {   //block 254 is EhBasic in ROM
@@ -238,7 +233,7 @@ void loop()
                 {   //banks 0-127 are RAM
                     setBank(activeBank);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
-                    setCtrlFast(ctrlValue);     
+                    setCtrlFast(ctrlValue);
                     gpio_put(CLK, LOW);
                 }
                 else
@@ -377,10 +372,20 @@ void loop()
         frameTimer += (FRAME_TIME_US * 2);
     }
 #ifdef SER_DEBUG        
-    else if(frameCounter % 10 == 0)
+    else if(frameCounter % 50 == 0)
     {   //every 10th frame, print how many us the last frame took
         SerDebug.println(time_us_32() - frameTimer);
     }
 #endif
     frameTimer += FRAME_TIME_US;
+}
+
+void setup2()
+{   //run audio interrupt and emulation on second core
+    sid_reset(SAMPLE_RATE);
+    pwmInit(SAMPLE_RATE);
+}
+
+void loop2()
+{
 }

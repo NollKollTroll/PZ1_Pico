@@ -98,19 +98,7 @@ uint8_t ctrlValue;
 int32_t frameTimer;
 uint16_t frameCounter;
 
-static inline void waitShort2()
-{
-    gpio_get(LED_PIN);
-    gpio_get(LED_PIN);
-}
-
-static inline void waitShort4()
-{
-    gpio_get(LED_PIN);
-    gpio_get(LED_PIN);
-    gpio_get(LED_PIN);
-    gpio_get(LED_PIN);
-}
+#define wait1() gpio_get(LED_PIN)
 
 static inline void setBank(uint8_t value) 
 {
@@ -133,7 +121,7 @@ static inline void setCtrlFast(uint8_t value)
     //gpio_set_dir_out_masked(255);
     gpio_put_masked(255, value);
     gpio_put(CTRL_LE, HIGH);
-    gpio_put(CTRL_LE, LOW);  
+    gpio_put(CTRL_LE, LOW);   
 }
 
 static inline uint16_t getAddr() 
@@ -141,11 +129,17 @@ static inline uint16_t getAddr()
     uint16_t value;
     gpio_set_dir_in_masked(255);
     gpio_put(A_HI_EN_N, LOW);
-    waitShort4();
+    wait1();
+    wait1();
+    wait1();
+    //wait1();
     value = (gpio_get_all() & 255) << 8;
     gpio_put(A_HI_EN_N, HIGH);      
     gpio_put(A_LO_EN_N, LOW);
-    waitShort4();
+    wait1();
+    wait1();
+    wait1();
+    //wait1();
     value = value | (gpio_get_all() & 255);
     gpio_put(A_LO_EN_N, HIGH);      
     return value;
@@ -156,7 +150,9 @@ static inline uint8_t getData()
     uint8_t value;
     gpio_set_dir_in_masked(255);
     gpio_put(D_EN_N, LOW);
-    waitShort4();
+    wait1();
+    wait1();
+    //wait1();
     value = gpio_get_all() & 255;
     gpio_put(D_EN_N, HIGH);  
     return value;
@@ -167,7 +163,7 @@ static inline void setDataAndClk(uint8_t value)
     gpio_set_dir_out_masked(255);
     gpio_put_masked(255, value);
     gpio_put(D_EN_N, LOW);
-    waitShort2();
+    //wait1();
     gpio_put(CLK, LOW);    
     gpio_put(D_EN_N, HIGH);
 }

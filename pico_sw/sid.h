@@ -22,7 +22,7 @@
 
 extern "C" {
   // Reset SID emulation
-  void sid_reset();
+  void sid_reset(uint32_t sample_frequency);
   
   //return next sample from SID
   int16_t sid_calc();

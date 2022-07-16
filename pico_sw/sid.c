@@ -22,7 +22,7 @@
 
 
 // Audio output sample frequency
-static int32_t sample_frequency = 44100;
+//static int32_t sample_frequency = 44100;
 
 // Flag: emulate new SID chip (8580)
 static bool emulate_8580 = true;
@@ -321,7 +321,7 @@ static const uint8_t eg_dr_shift[256] = {
 /****************
  *  Reset SID emulation
  ****************/
-void sid_reset()
+void sid_reset(uint32_t sample_frequency)
 {
     cycles_per_second_float = PAL_CLOCK;            
 //    cycles_per_second_int = cycles_per_second_float;
