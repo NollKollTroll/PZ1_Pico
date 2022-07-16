@@ -5,7 +5,7 @@
 #define CPU_FREQUENCY  1000000 //Hz
 #define FRAME_RATE     50 //Hz
 #define FRAME_TIME_US  (1000000 / FRAME_RATE)
-#define SAMPLE_RATE    32000 //Hz
+#define SAMPLE_RATE    96000 //Hz
 
 // SID registers
 #define PORT_SID_00           0xFE00

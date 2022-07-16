@@ -64,8 +64,8 @@ void setup()
 
     reset6502();
     irqTimerInit();    
-    sid_reset(SAMPLE_RATE);
-    pwmInit(SAMPLE_RATE);
+    //sid_reset(SAMPLE_RATE);
+    //pwmInit(SAMPLE_RATE);
     fsInit();    
     
     frameCounter = 0;    
@@ -386,4 +386,14 @@ void loop()
     }
     #endif
     frameTimer += FRAME_TIME_US;
+}
+
+void setup1()
+{
+    sid_reset(SAMPLE_RATE);
+    pwmInit(SAMPLE_RATE);
+}
+
+void loop1()
+{
 }
