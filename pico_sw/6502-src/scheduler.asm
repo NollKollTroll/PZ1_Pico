@@ -591,7 +591,7 @@ section code, "os code & data", 512, BANK_SIZE - 512
             lda     #$ff - 9
             sta     schStack
             //init slot time for ehBasic thread
-            lda     #80
+            lda     #40
             sta     schSlotTime
             //set next thread = 0
             lda     #0

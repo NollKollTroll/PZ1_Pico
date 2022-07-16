@@ -160,7 +160,7 @@ section code, "threadCode", 512
                 cmp     PORT_FRAME_COUNTER_LO
                 bne     @continue
                 sta     PORT_IRQ_TIMER_TRIG     //yield
-                jmp     @loop
+                jmp     @loop                
             }
 
             //set the SID register values from last time

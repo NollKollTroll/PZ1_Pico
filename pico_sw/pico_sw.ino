@@ -2,9 +2,11 @@
 Compiled with -O3 optimization,
 timings are tested to work at 250MHz and 133MHz
 */
+//#define PICO_250_MHZ
 
 #define SER_DEBUG
-SerialPIO Ser6502(21, 22, 32);
+//SerialPIO Ser6502(21, 22, 32);
+#define Ser6502 Serial
 #define SerDebug Serial    
 
 #include "hardware/pwm.h"
@@ -54,14 +56,16 @@ void setup()
     ctrlValue = 255 & ~CTRL_RST_N;
     setCtrl(ctrlValue);
 
-    SerDebug.begin(115200);
     Ser6502.begin(115200);
+    SerDebug.begin(115200);
     while(!Serial)
     {
     }
 
     reset6502();
     irqTimerInit();    
+    sid_reset(SAMPLE_RATE);
+    pwmInit(SAMPLE_RATE);
     fsInit();    
     
     frameCounter = 0;    
@@ -95,9 +99,11 @@ void loop()
                     setBank(activeBlock);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
                     wait1();
-                    //wait1();
-                    //wait1();
-                    //wait1();
+                    #ifdef PICO_250_MHZ
+                    wait1();
+                    wait1();
+                    wait1();
+                    #endif
                     gpio_put(CLK, LOW);
                     setCtrlFast(ctrlValue);
                 }
@@ -328,7 +334,7 @@ void loop()
                     }
                     case PORT_IRQ_TIMER_TRIG: 
                     {
-                        irqTimerReset();
+                        irqTimerTrig();
                         gpio_put(CLK, LOW);
                         break;
                     }
@@ -340,7 +346,7 @@ void loop()
                     }
                     case PORT_IRQ_TIMER_CONT:
                     {
-                        irqTimerPause();
+                        irqTimerCont();
                         gpio_put(CLK, LOW);
                         break;
                     }
@@ -358,6 +364,7 @@ void loop()
                 gpio_put(CLK, LOW);
             }
         }
+        //update the timer every CPU-cycle
         irqTimerTick();
     }
     
@@ -365,27 +372,18 @@ void loop()
     
     if (time_us_32() >= (frameTimer + FRAME_TIME_US))
     {   //frame took too long, skip an extra frame to catch up        
-#ifdef SER_DEBUG        
-        SerDebug.print("!!! ");
+        #ifdef SER_DEBUG        
+        SerDebug.print("\t\t\t!!! ");
         SerDebug.println(time_us_32() - frameTimer);
-#endif
+        #endif
         frameTimer += (FRAME_TIME_US * 2);
     }
-#ifdef SER_DEBUG        
+    #ifdef SER_DEBUG        
     else if(frameCounter % 50 == 0)
     {   //every 10th frame, print how many us the last frame took
+        SerDebug.print("\t\t ");
         SerDebug.println(time_us_32() - frameTimer);
     }
-#endif
+    #endif
     frameTimer += FRAME_TIME_US;
-}
-
-void setup2()
-{   //run audio interrupt and emulation on second core
-    sid_reset(SAMPLE_RATE);
-    pwmInit(SAMPLE_RATE);
-}
-
-void loop2()
-{
 }

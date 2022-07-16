@@ -5,7 +5,7 @@
 #define CPU_FREQUENCY  1000000 //Hz
 #define FRAME_RATE     50 //Hz
 #define FRAME_TIME_US  (1000000 / FRAME_RATE)
-#define SAMPLE_RATE    44100 //Hz
+#define SAMPLE_RATE    32000 //Hz
 
 // SID registers
 #define PORT_SID_00           0xFE00
@@ -132,14 +132,18 @@ static inline uint16_t getAddr()
     wait1();
     wait1();
     wait1();
-    //wait1();
+    #ifdef PICO_250_MHZ
+    wait1();
+    #endif
     value = (gpio_get_all() & 255) << 8;
     gpio_put(A_HI_EN_N, HIGH);      
     gpio_put(A_LO_EN_N, LOW);
     wait1();
     wait1();
     wait1();
-    //wait1();
+    #ifdef PICO_250_MHZ
+    wait1();
+    #endif
     value = value | (gpio_get_all() & 255);
     gpio_put(A_LO_EN_N, HIGH);      
     return value;
@@ -152,7 +156,9 @@ static inline uint8_t getData()
     gpio_put(D_EN_N, LOW);
     wait1();
     wait1();
-    //wait1();
+    #ifdef PICO_250_MHZ
+    wait1();
+    #endif
     value = gpio_get_all() & 255;
     gpio_put(D_EN_N, HIGH);  
     return value;
@@ -163,7 +169,9 @@ static inline void setDataAndClk(uint8_t value)
     gpio_set_dir_out_masked(255);
     gpio_put_masked(255, value);
     gpio_put(D_EN_N, LOW);
-    //wait1();
+    #ifdef PICO_250_MHZ
+    wait1();
+    #endif
     gpio_put(CLK, LOW);    
     gpio_put(D_EN_N, HIGH);
 }

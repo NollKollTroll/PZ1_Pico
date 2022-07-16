@@ -16,21 +16,25 @@ static inline void irqTimerInit(void)
 {
     irqTimerState = PAUSED;
     irqTimerTicks = 0;
-    irqTimerTarget = 0;    
+    irqTimerTarget = 0;
 }
 
 static inline void irqTimerTick(void)
 {
-    if (irqTimerState == RUNNING) 
+    if (irqTimerState == RUNNING)
     {
         irqTimerTicks++;
-        if (irqTimerTicks >= irqTimerTarget) 
+        if (irqTimerTicks >= irqTimerTarget)
         {
             irqTimerTicks -= irqTimerTarget;
             irqTimerState = TRIGGERED;
             ctrlValue = ctrlValue & ~CTRL_IRQ_N;
             setCtrl(ctrlValue);
         }
+    }
+    else if (irqTimerState == TRIGGERED)
+    {
+        irqTimerTicks++;
     }
 }
 
@@ -59,9 +63,6 @@ static inline void irqTimerReset(void)
 static inline void irqTimerTrig(void)
 {   // Triggers the timer IRQ
     irqTimerTicks = irqTimerTarget;
-    irqTimerState = TRIGGERED;
-    ctrlValue = ctrlValue & ~CTRL_IRQ_N;
-    setCtrl(ctrlValue);
 }
 
 static inline void irqTimerPause(void)
