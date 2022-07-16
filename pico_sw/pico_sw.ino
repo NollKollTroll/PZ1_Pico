@@ -1,5 +1,5 @@
 /*
-Compiled with -O3 optimization,
+Compiled with -O2 optimization,
 timings are tested to work at 250MHz and 133MHz
 */
 //#define PICO_250_MHZ
@@ -63,9 +63,7 @@ void setup()
     }
 
     reset6502();
-    irqTimerInit();    
-    //sid_reset(SAMPLE_RATE);
-    //pwmInit(SAMPLE_RATE);
+    irqTimerInit();  
     fsInit();    
     
     frameCounter = 0;    
@@ -380,7 +378,7 @@ void loop()
     }
     #ifdef SER_DEBUG        
     else if(frameCounter % 50 == 0)
-    {   //every 10th frame, print how many us the last frame took
+    {   //every 50th frame, print how many us the last frame took
         SerDebug.print("\t\t ");
         SerDebug.println(time_us_32() - frameTimer);
     }

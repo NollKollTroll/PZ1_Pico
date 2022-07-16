@@ -35,7 +35,7 @@ static inline void irqTimerTick(void)
     else if (irqTimerState == TRIGGERED)
     {
         irqTimerTicks++;
-    }
+    }    
 }
 
 static inline void irqTimerWriteLo(uint8_t cpuData)

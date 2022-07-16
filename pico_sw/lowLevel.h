@@ -156,6 +156,7 @@ static inline uint8_t getData()
     gpio_put(D_EN_N, LOW);
     wait1();
     wait1();
+    wait1();
     #ifdef PICO_250_MHZ
     wait1();
     #endif
