@@ -21,7 +21,7 @@ section code, "threadCode", 512
         jmp     sidPlay
     }
 
-    define byte[] sidFileName = {"ocean1.sid", 0}
+    define byte[] sidFileName = {"ocean2.sid", 0}
     define byte[] errorMsg = {"Format error!\r\n", 0}    
 
     subroutine sidFormatError

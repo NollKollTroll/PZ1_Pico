@@ -12,8 +12,8 @@ EhBASIC is running in a separate task with 64KiB RAM. There are added basic-comm
 <br>
 HW realised in the Pico:<br>
 - Serial communication via a virtual USB serial port.<br>
-- Serial port, 3.3V RX/TX on pin-header.<br>
-- SID-sound is based on TinySID, emulated and mixed at 44100Hz, no SID-filters. 10-bit PWM-output on a single pin.<br>
+- Serial port, 3.3V RX/TX on pin-header. Working but not used.<br>
+- SID-sound is based on TinySID, emulated on the second core of the Pico and mixed at 96000Hz, no SID-filters. 10-bit PWM-output on a single pin.<br>
 - IRQ-timer used by the scheduler, 16-bits.<br>
 - Frame counter registers, incremented @50Hz, 16-bits.<br>
 - HW/SW interfaces to filesystem operations.<br>
@@ -25,7 +25,7 @@ Running the Pico at the standard 133MHz can run the 65C02 @1MHz. Overclocking th
 
 ## History
 
-I started the PZ1 project because I wanted to code 6502, build proper electronics hardware and investigate multitasking and bank-switched memory on a 6502-system. I've done some iterations, trying out:<br>
+I started the PZ1 project because I wanted to code 6502, build proper electronics hardware and investigate multitasking and bank-switched memory on a 6502-system. I also got back to designing proper PCBs, now in KiCad. I've done some iterations experimenting with:<br>
 - 6502 emulation or a real 65C02.<br>
 - Different MCUs: Teensy 4.0/4.1 / BluePill / Pico.<br>
 - External SRAM, RAM/ROM inside MCU, RAM on Teensy quad-SPI.<br>
@@ -56,7 +56,7 @@ A proper BOM is missing but here are the main components:<br>
 
 ## Software
 
-Use Arduino IDE with Earl Philhowers Pico board package, -O3 optimization.<br>
+Use Arduino IDE with Earl Philhowers Pico board package, -O2 optimization.<br>
 The 6502-sources include pre-assembled h-files in the repository. Assembling on your own requires installation of the very fine assembler [Jasm](http://kollektivet.nu/jasm/).<br>
 Run the asm.sh file to create the necessary h-files, along with a bunch of debug- and info-files.<br>
 

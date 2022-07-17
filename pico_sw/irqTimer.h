@@ -31,7 +31,7 @@ static inline void irqTimerTick(void)
             ctrlValue = ctrlValue & ~CTRL_IRQ_N;
             setCtrl(ctrlValue);
         }
-    }    
+    } 
 }
 
 static inline void irqTimerWriteLo(uint8_t cpuData)
