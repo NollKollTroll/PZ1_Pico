@@ -1,13 +1,13 @@
 /*
-Compiled with -O2 optimization,
-timings are tested to work at 250MHz and 133MHz
+Best compiled with -O2 optimization,
+timings are tested to work at 133 & 250MHz
 */
 //#define PICO_250_MHZ
 
 #define SER_DEBUG
+#define SerDebug Serial    
 //SerialPIO Ser6502(21, 22, 32);
 #define Ser6502 Serial
-#define SerDebug Serial    
 
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
@@ -79,26 +79,25 @@ void loop()
     while (time_us_32() < frameTimer)
     {
     }
-    
+
     //run 65C02 for one frame
     for (int frameCycles = 0; frameCycles < (CPU_FREQUENCY / FRAME_RATE); frameCycles++)
     {   
         //CLK is LOW here
         cpuAddr = getAddr();  
+        uint8_t activeBlock = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
+        setBank(activeBlock);
         gpio_put(CLK, HIGH);
         
-        if (gpio_get(RW) == HIGH) 
+        if (gpio_get(RW) == HIGH)
         {   //read operation          
             if (cpuAddr <= 0xFDFF) 
             {   //banked memory 0x0000-0xFDFF
-                uint8_t activeBlock = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
                 if (activeBlock <= 127)
                 {   //blocks 0-127 are RAM
-                    setBank(activeBlock);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
                     wait1();
                     #ifdef PICO_250_MHZ
-                    wait1();
                     wait1();
                     wait1();
                     #endif
@@ -111,7 +110,7 @@ void loop()
                     setDataAndClk(cpuData);
                 }
                 else
-                {   //block 255 is scheduler/reset ROM
+                {   //block 255 is scheduler/boot ROM
                     //blocks 128-253 are unused, mirrored scheduler ROM
                     cpuData = scheduler_bin[cpuAddr & 0x3FFF];
                     setDataAndClk(cpuData);
@@ -232,10 +231,8 @@ void loop()
         {   //write operation
             if (cpuAddr <= 0xFDFF)
             {   //banked memory 0x0000-0xFDFF
-                uint8_t activeBank = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];                
-                if (activeBank <= 127)
+                if (activeBlock <= 127)
                 {   //banks 0-127 are RAM
-                    setBank(activeBank);
                     setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
                     setCtrlFast(ctrlValue);
                     gpio_put(CLK, LOW);
@@ -366,15 +363,14 @@ void loop()
         irqTimerTick();
     }
     
-    frameCounter++;
-    
     if (time_us_32() >= (frameTimer + FRAME_TIME_US))
     {   //frame took too long, skip an extra frame to catch up        
         #ifdef SER_DEBUG        
         SerDebug.print("\t\t\t!!! ");
         SerDebug.println(time_us_32() - frameTimer);
         #endif
-        frameTimer += (FRAME_TIME_US * 2);
+        frameTimer += FRAME_TIME_US;
+        frameCounter++;
     }
     #ifdef SER_DEBUG        
     else if(frameCounter % 50 == 0)
@@ -383,7 +379,9 @@ void loop()
         SerDebug.println(time_us_32() - frameTimer);
     }
     #endif
+
     frameTimer += FRAME_TIME_US;
+    frameCounter++;
 }
 
 void setup1()

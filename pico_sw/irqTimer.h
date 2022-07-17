@@ -21,7 +21,7 @@ static inline void irqTimerInit(void)
 
 static inline void irqTimerTick(void)
 {
-    if (irqTimerState == RUNNING)
+    if (irqTimerState != PAUSED)
     {
         irqTimerTicks++;
         if (irqTimerTicks >= irqTimerTarget)
@@ -31,10 +31,6 @@ static inline void irqTimerTick(void)
             ctrlValue = ctrlValue & ~CTRL_IRQ_N;
             setCtrl(ctrlValue);
         }
-    }
-    else if (irqTimerState == TRIGGERED)
-    {
-        irqTimerTicks++;
     }    
 }
 

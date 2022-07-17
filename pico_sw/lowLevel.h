@@ -151,7 +151,7 @@ static inline uint16_t getAddr()
 
 static inline uint8_t getData() 
 {
-    uint8_t value;
+    uint8_t value;    
     gpio_set_dir_in_masked(255);
     gpio_put(D_EN_N, LOW);
     wait1();
