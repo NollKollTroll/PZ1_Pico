@@ -2,7 +2,6 @@
 Best compiled with -O2 optimization,
 timings are tested to work at 133 & 250MHz
 */
-//#define PICO_250_MHZ
 
 #define SER_DEBUG
 #define SerDebug Serial    
@@ -35,11 +34,11 @@ void setup()
     pinMode(PD6,       OUTPUT);
     pinMode(PD7,       OUTPUT);
     pinMode(RW,        INPUT);
-    pinMode(SYNC,      INPUT);
     pinMode(CLK,       OUTPUT);
     pinMode(A_LO_EN_N, OUTPUT);
     pinMode(A_HI_EN_N, OUTPUT);
     pinMode(D_EN_N,    OUTPUT);
+    pinMode(MEM_CS_N,  OUTPUT);
     pinMode(BANK_LE,   OUTPUT);
     pinMode(CTRL_LE,   OUTPUT);
     
@@ -50,6 +49,7 @@ void setup()
     digitalWrite(A_LO_EN_N, HIGH);
     digitalWrite(A_HI_EN_N, HIGH);
     digitalWrite(D_EN_N,    HIGH);
+    digitalWrite(MEM_CS_N,  HIGH);
     digitalWrite(BANK_LE,   LOW);
     digitalWrite(CTRL_LE,   LOW);
 
@@ -95,14 +95,18 @@ void loop()
             {   //banked memory 0x0000-0xFDFF
                 if (activeBlock <= 127)
                 {   //blocks 0-127 are RAM
-                    setCtrlFast(ctrlValue & ~CTRL_RAM_R_N);
+                    gpio_put(MEM_CS_N, LOW);
+                    wait1();
+                    wait1();
                     wait1();
                     #ifdef PICO_250_MHZ
                     wait1();
                     wait1();
+                    wait1();
+                    wait1();
                     #endif
                     gpio_put(CLK, LOW);
-                    setCtrlFast(ctrlValue);
+                    gpio_put(MEM_CS_N, HIGH);
                 }
                 else if (activeBlock == 254)
                 {   //block 254 is EhBasic in ROM
@@ -233,8 +237,13 @@ void loop()
             {   //banked memory 0x0000-0xFDFF
                 if (activeBlock <= 127)
                 {   //banks 0-127 are RAM
-                    setCtrlFast(ctrlValue & ~CTRL_RAM_W_N);
-                    setCtrlFast(ctrlValue);
+                    gpio_put(MEM_CS_N, LOW);
+                    wait1();
+                    #ifdef PICO_250_MHZ
+                    wait1();
+                    wait1();
+                    #endif
+                    gpio_put(MEM_CS_N, HIGH);
                     gpio_put(CLK, LOW);
                 }
                 else

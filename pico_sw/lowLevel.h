@@ -2,6 +2,7 @@
 #define LOWLEVEL_H
 
 // system characteristics
+//#define PICO_250_MHZ
 #define CPU_FREQUENCY  1000000 //Hz
 #define FRAME_RATE     50 //Hz
 #define FRAME_TIME_US  (1000000 / FRAME_RATE)
@@ -72,7 +73,7 @@ uint8_t portMem6502[256];
 #define PD6            6
 #define PD7            7
 #define RW             8
-#define SYNC           9
+#define MEM_CS_N       9
 #define CLK            10
 #define A_LO_EN_N      11
 #define A_HI_EN_N      12
@@ -91,8 +92,6 @@ uint8_t portMem6502[256];
 #define CTRL_NMI_N     2
 #define CTRL_RST_N     4
 #define CTRL_BE        8
-#define CTRL_RAM_R_N   16
-#define CTRL_RAM_W_N   32
 uint8_t ctrlValue;
 
 int32_t frameTimer;
