@@ -167,7 +167,7 @@ section code, "threadCode", 512
             ldx     #0
             {
                 lda     $d400,x
-                sta     $fe00,x
+                sta     PORT_SID_00,x
                 inx
                 cpx     #$1d
                 bne     @loop

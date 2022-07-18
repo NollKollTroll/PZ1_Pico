@@ -8,46 +8,46 @@
 #define FRAME_TIME_US  (1000000 / FRAME_RATE)
 #define SAMPLE_RATE    96000 //Hz
 
-// SID registers
-#define PORT_SID_00           0xFE00
-#define PORT_SID_01           0xFE01
-#define PORT_SID_02           0xFE02
-#define PORT_SID_03           0xFE03
-#define PORT_SID_04           0xFE04
-#define PORT_SID_05           0xFE05
-#define PORT_SID_06           0xFE06
-#define PORT_SID_07           0xFE07
-#define PORT_SID_08           0xFE08
-#define PORT_SID_09           0xFE09
-#define PORT_SID_0A           0xFE0A
-#define PORT_SID_0B           0xFE0B
-#define PORT_SID_0C           0xFE0C
-#define PORT_SID_0D           0xFE0D
-#define PORT_SID_0E           0xFE0E
-#define PORT_SID_0F           0xFE0F
-#define PORT_SID_10           0xFE10
-#define PORT_SID_11           0xFE11
-#define PORT_SID_12           0xFE12
-#define PORT_SID_13           0xFE13
-#define PORT_SID_14           0xFE14
-#define PORT_SID_15           0xFE15
-#define PORT_SID_16           0xFE16
-#define PORT_SID_17           0xFE17
-#define PORT_SID_18           0xFE18
-#define PORT_SID_19           0xFE19
-#define PORT_SID_1A           0xFE1A
-#define PORT_SID_1B           0xFE1B
-#define PORT_SID_1C           0xFE1C
 // bank registers
-#define PORT_BANK_0           0xFE20
-#define PORT_BANK_1           0xFE21
-#define PORT_BANK_2           0xFE22
-#define PORT_BANK_3           0xFE23
+#define PORT_BANK_0           0xFE00
+#define PORT_BANK_1           0xFE01
+#define PORT_BANK_2           0xFE02
+#define PORT_BANK_3           0xFE03
 // serial port registers
-#define PORT_SERIAL_0_FLAGS   0xFE30 //bit 7: out-buffer full, bit 6: in-data available
-#define PORT_SERIAL_0_IN      0xFE31
-#define PORT_SERIAL_0_OUT     0xFE32
-// frame counter registers
+#define PORT_SERIAL_0_FLAGS   0xFE10 //bit 7: out-buffer full, bit 6: in-data available
+#define PORT_SERIAL_0_IN      0xFE11
+#define PORT_SERIAL_0_OUT     0xFE12
+// SID registers
+#define PORT_SID_00           0xFE20
+#define PORT_SID_01           0xFE21
+#define PORT_SID_02           0xFE22
+#define PORT_SID_03           0xFE23
+#define PORT_SID_04           0xFE24
+#define PORT_SID_05           0xFE25
+#define PORT_SID_06           0xFE26
+#define PORT_SID_07           0xFE27
+#define PORT_SID_08           0xFE28
+#define PORT_SID_09           0xFE29
+#define PORT_SID_0A           0xFE2A
+#define PORT_SID_0B           0xFE2B
+#define PORT_SID_0C           0xFE2C
+#define PORT_SID_0D           0xFE2D
+#define PORT_SID_0E           0xFE2E
+#define PORT_SID_0F           0xFE2F
+#define PORT_SID_10           0xFE30
+#define PORT_SID_11           0xFE31
+#define PORT_SID_12           0xFE32
+#define PORT_SID_13           0xFE33
+#define PORT_SID_14           0xFE34
+#define PORT_SID_15           0xFE35
+#define PORT_SID_16           0xFE36
+#define PORT_SID_17           0xFE37
+#define PORT_SID_18           0xFE38
+#define PORT_SID_19           0xFE39
+#define PORT_SID_1A           0xFE3A
+#define PORT_SID_1B           0xFE3B
+#define PORT_SID_1C           0xFE3C
+// frame counter register
 #define PORT_FRAME_COUNTER_LO 0xFE40
 #define PORT_FRAME_COUNTER_HI 0xFE41
 // file system registers
