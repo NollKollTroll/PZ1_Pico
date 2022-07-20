@@ -3,8 +3,8 @@ Best compiled with -O2 optimization,
 timings are tested to work at 133 & 250MHz
 */
 
-#define SER_DEBUG
-#define SerDebug Serial    
+//#define SER_DEBUG
+#define SerDebug Serial
 //SerialPIO Ser6502(21, 22, 32);
 #define Ser6502 Serial
 
@@ -23,38 +23,9 @@ timings are tested to work at 133 & 250MHz
 #include "6502-src/ehbasic.h"
 #include "6502-src/scheduler.h"
 
-void setup() 
+void setup()
 {
-    pinMode(PD0,       OUTPUT);
-    pinMode(PD1,       OUTPUT);
-    pinMode(PD2,       OUTPUT);
-    pinMode(PD3,       OUTPUT);
-    pinMode(PD4,       OUTPUT);
-    pinMode(PD5,       OUTPUT);
-    pinMode(PD6,       OUTPUT);
-    pinMode(PD7,       OUTPUT);
-    pinMode(RW,        INPUT);
-    pinMode(CLK,       OUTPUT);
-    pinMode(A_LO_EN_N, OUTPUT);
-    pinMode(A_HI_EN_N, OUTPUT);
-    pinMode(D_EN_N,    OUTPUT);
-    pinMode(MEM_CS_N,  OUTPUT);
-    pinMode(BANK_LE,   OUTPUT);
-    pinMode(CTRL_LE,   OUTPUT);
-    
-    pinMode(SD_CS_N,      OUTPUT);  
-    digitalWrite(SD_CS_N, HIGH);
-    
-    digitalWrite(CLK,       HIGH);
-    digitalWrite(A_LO_EN_N, HIGH);
-    digitalWrite(A_HI_EN_N, HIGH);
-    digitalWrite(D_EN_N,    HIGH);
-    digitalWrite(MEM_CS_N,  HIGH);
-    digitalWrite(BANK_LE,   LOW);
-    digitalWrite(CTRL_LE,   LOW);
-
-    ctrlValue = 255 & ~CTRL_RST_N;
-    setCtrl(ctrlValue);
+    lowLevelInit();
 
     Ser6502.begin(115200);
     SerDebug.begin(115200);
@@ -63,14 +34,14 @@ void setup()
     }
 
     reset6502();
-    irqTimerInit();  
-    fsInit();    
+    irqTimerInit();
+    fsInit();
     
     frameCounter = 0;    
-    frameTimer = time_us_32() + FRAME_TIME_US;    
+    frameTimer = time_us_32() + FRAME_TIME_US;
 }
 
-void loop() 
+void loop()
 {  
     uint16_t cpuAddr;
     uint8_t cpuData;
@@ -82,16 +53,16 @@ void loop()
 
     //run 65C02 for one frame
     for (int frameCycles = 0; frameCycles < (CPU_FREQUENCY / FRAME_RATE); frameCycles++)
-    {   
+    {
         //CLK is LOW here
-        cpuAddr = getAddr();  
+        cpuAddr = getAddr();
         uint8_t activeBlock = portMem6502[(cpuAddr >> 14) + (PORT_BANK_0 & 0xFF)];
         setBank(activeBlock);
         gpio_put(CLK, HIGH);
-        
+
         if (gpio_get(RW) == HIGH)
-        {   //read operation          
-            if (cpuAddr <= 0xFDFF) 
+        {   //read operation
+            if (cpuAddr <= 0xFDFF)
             {   //banked memory 0x0000-0xFDFF
                 if (activeBlock <= 127)
                 {   //blocks 0-127 are RAM
@@ -120,11 +91,40 @@ void loop()
                     setDataAndClk(cpuData);
                 }
             }
-            else if (cpuAddr <= 0xFEFF) 
-            {   //I/O-device read at 0xFE00-0xFEFF               
+            else if (cpuAddr <= 0xFEFF)
+            {   //I/O-device read at 0xFE00-0xFEFF
                 switch (cpuAddr) 
                 {   //take action depending on device
-                    // ******** SID registers ********                
+                    // ******** Memory bank registers ********
+                        // Same as default
+                    // ******** Serial port registers ********
+                    case PORT_SERIAL_0_IN: 
+                    {
+                        if (Ser6502.available()) 
+                        {
+                            cpuData = Ser6502.read();
+                        }
+                        else 
+                        {
+                            cpuData = 0;
+                        }
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    case PORT_SERIAL_0_FLAGS:
+                    {
+                        if (Ser6502.available()) 
+                        {
+                            cpuData = 64;
+                        }
+                        else 
+                        {
+                            cpuData = 0;
+                        }
+                        setDataAndClk(cpuData);
+                        break;
+                    }
+                    // ******** SID registers ********
                     case PORT_SID_00:
                     case PORT_SID_01:
                     case PORT_SID_02:
@@ -156,35 +156,6 @@ void loop()
                     case PORT_SID_1C:
                     {
                         cpuData = sid_read(cpuAddr & 0x1F);
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    // ******** Memory bank registers ********
-                        // Same as default
-                    // ******** Serial port registers ********
-                    case PORT_SERIAL_0_IN: 
-                    {
-                        if (Ser6502.available()) 
-                        {
-                            cpuData = Ser6502.read();
-                        }
-                        else 
-                        {
-                            cpuData = 0;
-                        }
-                        setDataAndClk(cpuData);
-                        break;
-                    }
-                    case PORT_SERIAL_0_FLAGS:
-                    {
-                        if (Ser6502.available()) 
-                        {
-                            cpuData = 64;
-                        }
-                        else 
-                        {
-                            cpuData = 0;
-                        }
                         setDataAndClk(cpuData);
                         break;
                     }
@@ -226,7 +197,7 @@ void loop()
                 }
             }
             else 
-            {   //top page ROM read at 0xFF00-0xFFFF, regardless of BANK_3                
+            {   //top page ROM read at 0xFF00-0xFFFF, regardless of BANK_3
                 cpuData = scheduler_bin[0x3F00 + (cpuAddr & 0xFF)];
                 setDataAndClk(cpuData);
             }
@@ -255,44 +226,9 @@ void loop()
             else if (cpuAddr <= 0xFEFF)
             {   //I/O-device write at 0xFE00-0xFEFF
                 cpuData = getData();
-                portMem6502[cpuAddr & 0xFF] = cpuData;                
+                portMem6502[cpuAddr & 0xFF] = cpuData;
                 switch (cpuAddr)
                 {   //take action depending on device
-                    //******** SID registers ********
-                    case PORT_SID_00: 
-                    case PORT_SID_01: 
-                    case PORT_SID_02: 
-                    case PORT_SID_03: 
-                    case PORT_SID_04: 
-                    case PORT_SID_05: 
-                    case PORT_SID_06: 
-                    case PORT_SID_07: 
-                    case PORT_SID_08: 
-                    case PORT_SID_09: 
-                    case PORT_SID_0A: 
-                    case PORT_SID_0B: 
-                    case PORT_SID_0C: 
-                    case PORT_SID_0D: 
-                    case PORT_SID_0E: 
-                    case PORT_SID_0F: 
-                    case PORT_SID_10: 
-                    case PORT_SID_11: 
-                    case PORT_SID_12: 
-                    case PORT_SID_13: 
-                    case PORT_SID_14: 
-                    case PORT_SID_15: 
-                    case PORT_SID_16: 
-                    case PORT_SID_17: 
-                    case PORT_SID_18: 
-                    case PORT_SID_19: 
-                    case PORT_SID_1A: 
-                    case PORT_SID_1B: 
-                    case PORT_SID_1C:
-                    {
-                        sid_write(cpuAddr & 0x1F, cpuData);
-                        gpio_put(CLK, LOW);
-                        break;
-                    }
                     // ******** Memory bank registers ********
                         // Same as default
                     // ******** Serial port registers ********
@@ -302,6 +238,41 @@ void loop()
                         gpio_put(CLK, LOW);
                         break;
                     }       
+                    //******** SID registers ********
+                    case PORT_SID_00:
+                    case PORT_SID_01:
+                    case PORT_SID_02:
+                    case PORT_SID_03:
+                    case PORT_SID_04:
+                    case PORT_SID_05:
+                    case PORT_SID_06:
+                    case PORT_SID_07:
+                    case PORT_SID_08:
+                    case PORT_SID_09:
+                    case PORT_SID_0A:
+                    case PORT_SID_0B:
+                    case PORT_SID_0C:
+                    case PORT_SID_0D:
+                    case PORT_SID_0E:
+                    case PORT_SID_0F:
+                    case PORT_SID_10:
+                    case PORT_SID_11:
+                    case PORT_SID_12:
+                    case PORT_SID_13:
+                    case PORT_SID_14:
+                    case PORT_SID_15:
+                    case PORT_SID_16:
+                    case PORT_SID_17:
+                    case PORT_SID_18:
+                    case PORT_SID_19:
+                    case PORT_SID_1A:
+                    case PORT_SID_1B:
+                    case PORT_SID_1C:
+                    {
+                        sid_write(cpuAddr & 0x1F, cpuData);
+                        gpio_put(CLK, LOW);
+                        break;
+                    }
                     // ******** Frame counter registers ********
                         // Same as default
                     // ******** File system registers ********
@@ -363,7 +334,7 @@ void loop()
                 }
             }
             else 
-            {   //top page ROM write at 0xFF00-0xFFFF, regardless of BANK_3                
+            {   //top page ROM write at 0xFF00-0xFFFF, regardless of BANK_3
                 //Writing to ROM? Nope.
                 gpio_put(CLK, LOW);
             }
@@ -373,15 +344,15 @@ void loop()
     }
     
     if (time_us_32() >= (frameTimer + FRAME_TIME_US))
-    {   //frame took too long, skip an extra frame to catch up        
-        #ifdef SER_DEBUG        
+    {   //frame took too long, skip an extra frame to catch up
+        #ifdef SER_DEBUG
         SerDebug.print("\t\t\t!!! ");
         SerDebug.println(time_us_32() - frameTimer);
         #endif
         frameTimer += FRAME_TIME_US;
         frameCounter++;
     }
-    #ifdef SER_DEBUG        
+    #ifdef SER_DEBUG
     else if(frameCounter % 50 == 0)
     {   //every 50th frame, print how many us the last frame took
         SerDebug.print("\t\t ");

@@ -58,9 +58,10 @@
 #define PORT_IRQ_TIMER_LO     0xFE80  //writing the lo-value fills the intermediate register
 #define PORT_IRQ_TIMER_HI     0xFE81  //writing the hi-value sets the timer from the completed intermediate register
 #define PORT_IRQ_TIMER_RESET  0xFE82  //timer = 0 so it can count a full cycle again
-#define PORT_IRQ_TIMER_TRIG   0xFE83  //timer = max timer-value, so it triggers an irq
+#define PORT_IRQ_TIMER_TRIG   0xFE83  //timer = target timer-value, triggers an irq
 #define PORT_IRQ_TIMER_PAUSE  0xFE84  //pause the timer indefinitely
-#define PORT_IRQ_TIMER_CONT   0xFE85  //continue the timer after a pause, also acks a triggered timer
+#define PORT_IRQ_TIMER_CONT   0xFE85  //continue the timer after a pause, also acks irq
+//mirror of the I/O-space
 uint8_t portMem6502[256];
 
 // pin definitions
@@ -174,6 +175,40 @@ static inline void setDataAndClk(uint8_t value)
     #endif
     gpio_put(CLK, LOW);    
     gpio_put(D_EN_N, HIGH);
+}
+
+void lowLevelInit()
+{
+    pinMode(PD0,       OUTPUT);
+    pinMode(PD1,       OUTPUT);
+    pinMode(PD2,       OUTPUT);
+    pinMode(PD3,       OUTPUT);
+    pinMode(PD4,       OUTPUT);
+    pinMode(PD5,       OUTPUT);
+    pinMode(PD6,       OUTPUT);
+    pinMode(PD7,       OUTPUT);
+    pinMode(RW,        INPUT);
+    pinMode(CLK,       OUTPUT);
+    pinMode(A_LO_EN_N, OUTPUT);
+    pinMode(A_HI_EN_N, OUTPUT);
+    pinMode(D_EN_N,    OUTPUT);
+    pinMode(MEM_CS_N,  OUTPUT);
+    pinMode(BANK_LE,   OUTPUT);
+    pinMode(CTRL_LE,   OUTPUT);
+    
+    pinMode(SD_CS_N,      OUTPUT);
+    digitalWrite(SD_CS_N, HIGH);
+    
+    digitalWrite(CLK,       HIGH);
+    digitalWrite(A_LO_EN_N, HIGH);
+    digitalWrite(A_HI_EN_N, HIGH);
+    digitalWrite(D_EN_N,    HIGH);
+    digitalWrite(MEM_CS_N,  HIGH);
+    digitalWrite(BANK_LE,   LOW);
+    digitalWrite(CTRL_LE,   LOW);  
+
+    ctrlValue = 255 & ~CTRL_RST_N;
+    setCtrl(ctrlValue);
 }
 
 void reset6502() 

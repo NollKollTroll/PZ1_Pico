@@ -21,7 +21,7 @@ section code, "threadCode", 512
         jmp     sidPlay
     }
 
-    define byte[] sidFileName = {"ocean2.sid", 0}
+    define byte[] sidFileName = {"delta.sid", 0}
     define byte[] errorMsg = {"Format error!\r\n", 0}    
 
     subroutine sidFormatError
@@ -136,6 +136,7 @@ section code, "threadCode", 512
     {
         //init sub-song
         lda     sidSubSong: #0
+        lda     #11
         jsr     sidInitAddr: $1234
         //set master volume to $f
         lda     PORT_SID_18
