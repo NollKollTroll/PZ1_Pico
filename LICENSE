@@ -1,5 +1,5 @@
-The Pico source code is licensed under GPL3.
+The Pico source code is licensed under Creative Commons CC0 1.0 Universal.
+The 6502 assembler source code, except EhBasic, is licensed under Creative Commons CC0 1.0 Universal.
+The hardware design is licensed under Creative Commons CC0 1.0 Universal.
 The basic running on this platform is derived from EhBASIC, free software copyrighted by Lee Davison.
-The 6502 assembler source code, except EhBasic, is licensed under Creative Commons Attribution 4.0 International License.
-The hardware is licensed under Creative Commons Attribution 4.0 International License.
 The SID emulation code is derived from TinySID, licensed under GPL2.

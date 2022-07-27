@@ -36,7 +36,7 @@
 //      5.5     garbage collection may cause an overlap with temporary strings
 //      5.6     floating point multiply rounding bug
 //      5.7     VAL() may cause string variables to be trashed
-// 2.22p5.7ak   Adams additions and changes, jasm-fixed.
+// 2.22p5.7ak   Adam Klotblixt: PZ1 additions and changes, jasm-fixed.
 
 include "portdefs.asm"
 include "zpos.asm"
